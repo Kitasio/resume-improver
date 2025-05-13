@@ -1,0 +1,39 @@
+{% extends "shared/base.html" %}
+
+
+{% block title %} 
+  <title>CV tuning</title>
+{% endblock %} 
+
+{% block content %} 
+  <div class="container mx-auto px-4">
+    <h1 class="text-4xl font-bold mb-6">Let's tune your CV</h1>
+
+    <form hx-post="cv-tunes"> {# Assuming the form will post to the root URL #}
+      <div class="flex flex-wrap -mx-4 mb-4">
+        {# CV Input Column #}
+        <div class="w-full md:w-1/2 px-4 mb-4 md:mb-0">
+          <label for="cv_input" class="block text-gray-700 text-sm font-bold mb-2">
+            Paste your CV here:
+          </label>
+          <textarea id="cv_input" name="cv_input" rows="10" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-64" placeholder="Paste your CV text..."></textarea>
+        </div>
+
+        {# Job Description Input Column #}
+        <div class="w-full md:w-1/2 px-4">
+          <label for="jd_input" class="block text-gray-700 text-sm font-bold mb-2">
+            Paste the Job Description here:
+          </label>
+          <textarea id="jd_input" name="jd_input" rows="10" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-64" placeholder="Paste the Job Description text..."></textarea>
+        </div>
+      </div>
+
+      {# Submit Button #}
+      <div class="flex justify-center">
+        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+          Tune CV
+        </button>
+      </div>
+    </form>
+  </div>
+{% endblock %} 
