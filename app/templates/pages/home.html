@@ -9,7 +9,12 @@
   <div class="container mx-auto px-4">
     <h1 class="text-4xl font-bold mb-6">Let's tune your CV</h1>
 
-    <form hx-post="cv-tunes"> {# Assuming the form will post to the root URL #}
+    <form
+      id="initial-form"
+      hx-post="cv-tunes-trigger-button"
+      hx-target="#form-submit-button"
+      hx-swap="outerHTML"
+    >
       <div class="flex flex-wrap -mx-4 mb-4">
         {# CV Input Column #}
         <div class="w-full md:w-1/2 px-4 mb-4 md:mb-0">
@@ -30,8 +35,12 @@
 
       {# Submit Button #}
       <div class="flex justify-center">
-        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-          Tune CV
+        <button 
+          id="form-submit-button"
+          class="relative cursor-pointer flex gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          type="submit"
+        >
+          Submit
         </button>
       </div>
     </form>

@@ -1,6 +1,8 @@
 from openai import OpenAI
 from pydantic import BaseModel
 
+DEFAULT_MODEL = "gpt-4o-mini"
+
 
 class HtmlAdapter(BaseModel):
     tuning_result: str
@@ -30,7 +32,7 @@ class HtmlAdapter(BaseModel):
         """
 
         response = client.chat.completions.create(
-            model="o3-mini",  # Using the same model as Tuner for consistency
+            model=DEFAULT_MODEL,  # Using the same model as Tuner for consistency
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message},
@@ -86,7 +88,7 @@ class Tuner(BaseModel):
         client = OpenAI()
 
         response = client.chat.completions.create(
-            model="o3-mini",
+            model=DEFAULT_MODEL,
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message},
