@@ -1,0 +1,42 @@
+{% extends "shared/base.html" %}
+
+
+{% block title %} 
+  <title>Improving the CV</title>
+{% endblock %} 
+
+{% block content %} 
+<form
+  id="tuning-response-form"
+  hx-post="/resume-improvements/{{id}}/pdf-templates/1"
+  hx-disabled-elt="find button"
+  hx-indicator="find #loader"
+>
+    <div class="text-3xl font-bold text-red-600">CV tuninig response</div>
+
+    <div class="flex flex-wrap -mx-4">
+        {# Display Result #}
+        <div class="w-full md:w-1/2 px-4 mb-4 md:mb-0">
+            <h2 class="text-xl font-semibold mb-2">Result</h2>
+            <textarea name="tuning_result" rows="10" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-64">{{ improved_resume }}</textarea>
+        </div>
+        {# Display CV Input #}
+        <div class="w-full md:w-1/2 px-4 mb-4 md:mb-0">
+            <h2 class="text-xl font-semibold mb-2">Original CV</h2>
+            <textarea name="cv_input" rows="10" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-64">{{ base_resume }}</textarea>
+        </div>
+    </div>
+
+    {# Add PDF Button #}
+    <div class="mt-4">
+        <button
+          id="get-pdf-button"
+          class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+          type="submit"
+        >
+          <span>Get the PDF</span>
+          <img id="loader" class="w-4 h-4 htmx-indicator" src="/static/loaders/puff.svg" />
+        </button>
+    </div>
+</form>
+{% endblock %} 

@@ -6,14 +6,13 @@
 {% endblock %} 
 
 {% block content %} 
-  <div class="container mx-auto px-4">
     <h1 class="text-4xl font-bold mb-6">Let's tune your CV</h1>
 
     <form
       id="initial-form"
-      hx-post="cv-tunes-trigger-button"
-      hx-target="#form-submit-button"
-      hx-swap="outerHTML"
+      hx-post="resume-improvements"
+      hx-disabled-elt="find button"
+      hx-indicator="find #loader"
     >
       <div class="flex flex-wrap -mx-4 mb-4">
         {# CV Input Column #}
@@ -37,12 +36,12 @@
       <div class="flex justify-center">
         <button 
           id="form-submit-button"
-          class="relative cursor-pointer flex gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           type="submit"
         >
-          Submit
+          <span>Submit</span>
+          <img id="loader" class="w-4 h-4 htmx-indicator" src="/static/loaders/puff.svg" />
         </button>
       </div>
     </form>
-  </div>
 {% endblock %} 

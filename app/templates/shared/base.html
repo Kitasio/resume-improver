@@ -7,12 +7,21 @@
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <script src="https://unpkg.com/htmx-ext-loading-states@2.0.0/loading-states.js"></script>
   <link href="/static/styles/output.css" rel="stylesheet">
+  <style>
+  .htmx-indicator {
+    display: none;
+  }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator {
+    display: block;
+  }
+  </style>
   {% block title %}
     <title>Job Seek</title>
   {% endblock %}
 </head>
 
-<body hx-boost="true" class="">
+<body hx-boost="true" class="container mx-auto px-4">
   {% block content %}
   {% endblock %}
 </body>

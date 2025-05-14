@@ -1,7 +1,7 @@
 from openai import OpenAI
 from pydantic import BaseModel
 
-DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL = "o3-mini"
 
 
 class HtmlAdapter(BaseModel):
@@ -49,7 +49,7 @@ class HtmlAdapter(BaseModel):
         return generated_html
 
 
-class Tuner(BaseModel):
+class ResumeImprover(BaseModel):
     cv_input: str
     jd_input: str
 

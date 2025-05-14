@@ -7,7 +7,8 @@ from fastapi import BackgroundTasks, FastAPI, Form, HTTPException, Request, Resp
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from tuner import HtmlAdapter, Tuner
+from pydantic import BaseModel
+from resume_improver import HtmlAdapter, ResumeImprover
 from weasyprint import HTML
 
 app = FastAPI()
@@ -15,16 +16,24 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 cv_templates = Jinja2Templates(directory="app/static/cv_templates")
 
-pdf_cache: dict[str, BytesIO] = {}
+
+class UserContext(BaseModel):
+    base_resume: str
+    job_description: str
+    improved_resume: str | None = None
+    pdf_bytes: bytes | None = None
+
+
+cache: dict[str, UserContext] = {}
 
 # Time (in seconds) before cleanup
-PDF_LIFETIME = 300
+CONTEXT_LIFETIME = 600
 
 
-async def expire_pdf(pdf_id: str, delay: int):
+async def expire_context(ctx_id: str, delay: int):
     await asyncio.sleep(delay)
-    pdf_cache.pop(pdf_id, None)
-    print(f"PDF {pdf_id} expired and removed from cache.")
+    cache.pop(ctx_id, None)
+    print(f"User context {ctx_id} expired and removed from cache.")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -32,51 +41,55 @@ def root(request: Request):
     return templates.TemplateResponse(request=request, name="pages/home.html")
 
 
-@app.get("/cv-examples/1", response_class=HTMLResponse)
-def cv_examples(request: Request):
-    return templates.TemplateResponse(request=request, name="cv_templates/1.html")
-
-
-@app.post("/cv-tunes-trigger-button", response_class=HTMLResponse)
-def cv_tunes_trigger(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="components/cv-tuning-in-progress.html"
-    )
-
-
-@app.post("/cv-tunes", response_class=HTMLResponse)
-def cv_tunes(
-    request: Request, cv_input: Annotated[str, Form()], jd_input: Annotated[str, Form()]
+@app.post("/resume-improvements", response_class=HTMLResponse)
+def improve_resume(
+    response: Response,
+    cv_input: Annotated[str, Form()],
+    jd_input: Annotated[str, Form()],
+    bg_tasks: BackgroundTasks,
 ):
-    tuner = Tuner(cv_input=cv_input, jd_input=jd_input)
-    result = tuner.run()
+    resume_improver = ResumeImprover(cv_input=cv_input, jd_input=jd_input)
+    result = resume_improver.run()
+
+    context_id = str(uuid4())
+    cache[context_id] = UserContext(
+        base_resume=cv_input, job_description=jd_input, improved_resume=result
+    )
+    bg_tasks.add_task(expire_context, context_id, CONTEXT_LIFETIME)
+
+    response.headers["HX-Redirect"] = f"/resume-improvements/{context_id}"
+    return "OK"
+
+
+@app.get("/resume-improvements/{id}", response_class=HTMLResponse)
+def improved_resume(request: Request, id: str):
+    ctx = cache.get(id)
+    if not ctx:
+        raise HTTPException(
+            status_code=404, detail="Context not found or already expired."
+        )
 
     context = {
-        "tuning_result": result,
-        "cv_input": cv_input,
+        "id": id,
+        "improved_resume": ctx.improved_resume,
+        "base_resume": ctx.base_resume,
     }
 
     return templates.TemplateResponse(
-        request=request, name="components/cv-tuning-response.html", context=context
+        request=request, name="pages/improved-resume.html", context=context
     )
 
 
-@app.post("/cv-tunes/pdf-trigger-button")
-def create_pdf_trigger(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="components/create-pdf-in-progress.html"
-    )
-
-
-@app.post("/cv-tunes/pdf")
+@app.post("/resume-improvements/{id}/pdf-templates/{tpl_id}")
 def create_pdf(
+    id: str,
+    tpl_id: str,
     request: Request,
     response: Response,
-    bg_tasks: BackgroundTasks,
     tuning_result: Annotated[str, Form()],
 ):
     # 1. Render HTML using the Jinja2 environment
-    template = cv_templates.env.get_template("1.html")
+    template = cv_templates.env.get_template(f"{tpl_id}.html")
     rendered_html = template.render(request=request)
 
     html_adapter = HtmlAdapter(tuning_result=tuning_result, html_template=rendered_html)
@@ -87,44 +100,25 @@ def create_pdf(
     HTML(string=result_html).write_pdf(pdf_io)
     pdf_io.seek(0)
 
-    pdf_id = str(uuid4())
-    pdf_cache[pdf_id] = pdf_io
+    cache[id].pdf_bytes = pdf_io.read()
 
-    bg_tasks.add_task(expire_pdf, pdf_id, PDF_LIFETIME)
-
-    response.headers["HX-Redirect"] = f"/cv-tunes/pdf/{pdf_id}"
-    return {"message": "ok"}
-
-
-@app.get("/cv-tunes/pdf/{id}")
-def get_pdf(id):
-    pdf_io = pdf_cache.pop(id, None)
-    if not pdf_io:
-        raise HTTPException(
-            status_code=404, detail="PDF not found or already accessed."
-        )
-
-    return StreamingResponse(
-        pdf_io,
-        media_type="application/pdf",
-        headers={"Content-Disposition": "inline; filename=cv.pdf"},
+    response.headers["HX-Redirect"] = (
+        f"/resume-improvements/{id}/pdf-templates/{tpl_id}"
     )
+    return {"message": "OK"}
 
 
-@app.get("/cv-examples/1/pdf")
-def cv_pdf(request: Request):
-    # 1. Render HTML using the Jinja2 environment
-    template = cv_templates.env.get_template("1.html")
-    rendered_html = template.render(request=request)
+@app.get("/resume-improvements/{id}/pdf-templates/{tpl_id}")
+def get_pdf(id: str):
+    ctx = cache.get(id)
+    if not ctx:
+        raise HTTPException(status_code=404, detail="Context not found")
 
-    # 2. Generate PDF from HTML
-    pdf_io = BytesIO()
-    HTML(string=rendered_html).write_pdf(pdf_io)
-    pdf_io.seek(0)
+    if not ctx.pdf_bytes:
+        raise HTTPException(status_code=404, detail="PDF not found")
 
-    # 3. Return PDF as a downloadable file
     return StreamingResponse(
-        pdf_io,
+        BytesIO(ctx.pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": "inline; filename=cv.pdf"},
     )
