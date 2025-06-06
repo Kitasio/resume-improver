@@ -27,7 +27,7 @@ class UserContext(BaseModel):
 cache: dict[str, UserContext] = {}
 
 # Time (in seconds) before cleanup
-CONTEXT_LIFETIME = 600
+CONTEXT_LIFETIME = 1200
 
 
 async def expire_context(ctx_id: str, delay: int):
@@ -39,6 +39,31 @@ async def expire_context(ctx_id: str, delay: int):
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
     return templates.TemplateResponse(request=request, name="pages/home.html")
+
+
+@app.get("/pdf-templates/{id}")
+def pdf_template(request: Request, id: str):
+    template = cv_templates.env.get_template(f"{id}.html")
+    rendered_html = template.render(request=request)
+    pdf_io = BytesIO()
+    HTML(string=rendered_html).write_pdf(pdf_io)
+    pdf_io.seek(0)
+
+    return StreamingResponse(
+        pdf_io,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "inline; filename=cv.pdf"},
+    )
+
+
+@app.get("/html-templates/{id}", response_class=HTMLResponse)
+def html_template(request: Request, id: str):
+    return templates.TemplateResponse(request=request, name=f"resumes/{id}.html")
+
+
+@app.get("/html-templates/{id}/compilations", response_class=HTMLResponse)
+def compile_html_template(request: Request, id: str):
+    pass
 
 
 @app.post("/resume-improvements", response_class=HTMLResponse)

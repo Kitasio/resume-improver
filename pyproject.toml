@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "cachetools>=5.5.2",
+    "crawl4ai>=0.6.3",
     "fastapi[standard]>=0.115.12",
     "instructor>=1.8.1",
     "openai>=1.78.1",
